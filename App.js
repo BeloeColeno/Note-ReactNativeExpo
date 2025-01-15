@@ -1,20 +1,41 @@
-import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
+import React, { useEffect } from 'react';
+import AppNavigator from './navigation/AppNavigator';
+import * as FileSystem from 'expo-file-system';
 
 export default function App() {
-  return (
-    <View style={styles.container}>
-      <Text>Open up App.js to start working on your app!</Text>
-      <StatusBar style="auto" />
-    </View>
-  );
-}
+  const checkAndCreateFile = async () => {
+    try {
+      const dir = `${FileSystem.documentDirectory}note/`;
+      const fileUri = `${dir}notes.json`;
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
+      const dirInfo = await FileSystem.getInfoAsync(dir);
+      if (!dirInfo.exists) {
+        await FileSystem.makeDirectoryAsync(dir, { intermediates: true });
+      }
+
+      const fileInfo = await FileSystem.getInfoAsync(fileUri);
+      if (!fileInfo.exists) {
+        await FileSystem.writeAsStringAsync(fileUri, JSON.stringify([]));
+      }
+    } catch (error) {
+      if (__DEV__) {
+        console.error('Error checking/creating file:', error);
+      }
+    }
+  };
+
+  useEffect(() => {
+    const initializeApp = async () => {
+      try {
+        await checkAndCreateFile();
+      } catch (error) {
+        if (__DEV__) {
+          console.error('Error initializing app:', error);
+        }
+      }
+    };
+    initializeApp();
+  }, []);
+
+  return <AppNavigator />;
+}
