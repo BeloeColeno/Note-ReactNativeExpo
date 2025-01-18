@@ -2,11 +2,11 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createDrawerNavigator } from '@react-navigation/drawer';
 import { createStackNavigator } from '@react-navigation/stack';
-import CustomHeader from '../navigation/CustomHeader';
+import CustomHeader from '../component/CustomHeader';
 import HomeScreen from '../screens/HomeScreen';
 import CompletedNotesScreen from '../screens/CompletedNotesScreen';
 import AddNoteScreen from '../screens/AddNoteScreen';
-import CustomDrawerContent from '../navigation/CustomDrawerContent';
+import CustomDrawerContent from '../component/CustomDrawerContent';
 
 const Drawer = createDrawerNavigator();
 const Stack = createStackNavigator();
