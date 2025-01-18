@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, FlatList, TextInput } from 'react-native';
+import React, {useEffect, useState} from 'react';
+import {FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function HomeScreen({ navigation }) {
@@ -16,8 +16,7 @@ export default function HomeScreen({ navigation }) {
     };
 
     useEffect(() => {
-        const unsubscribe = navigation.addListener('focus', loadNotes);
-        return unsubscribe;
+        return navigation.addListener('focus', loadNotes);
     }, [navigation]);
 
     const handlePress = async (note) => {
