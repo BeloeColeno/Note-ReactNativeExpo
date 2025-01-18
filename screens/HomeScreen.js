@@ -1,9 +1,10 @@
-import React, {useEffect, useState} from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, FlatList} from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, FlatList, TextInput } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export default function HomeScreen({navigation}) {
+export default function HomeScreen({ navigation }) {
     const [notes, setNotes] = useState([]);
+    const [searchQuery, setSearchQuery] = useState('');
 
     const loadNotes = async () => {
         try {
@@ -20,35 +21,48 @@ export default function HomeScreen({navigation}) {
     }, [navigation]);
 
     const handlePress = async (note) => {
-        const updatedNotes = notes.map(n => n === note ? {...n, completed: true} : n);
+        const updatedNotes = notes.map(n => n === note ? { ...n, completed: true } : n);
         setNotes(updatedNotes);
         await AsyncStorage.setItem('notes', JSON.stringify(updatedNotes));
     };
 
+    const filteredNotes = notes.filter(note => {
+        if (searchQuery.startsWith('#')) {
+            return note.tag.includes(searchQuery);
+        }
+        return note.title.includes(searchQuery) || note.content.includes(searchQuery);
+    });
+
     return (
-            <View style={styles.container}>
-                <FlatList
-                    data={notes.filter(note => !note.completed)}
-                    keyExtractor={(item, index) => index.toString()}
-                    renderItem={({item}) => (
-                        <TouchableOpacity
-                            style={styles.noteCard}
-                            onPress={() => handlePress(item)}
-                            activeOpacity={0.7}
-                        >
-                            <Text style={styles.noteTitle}>{item.title}</Text>
-                            <Text style={styles.noteText}>{item.content}</Text>
-                            <Text style={styles.actionText}>Complete</Text>
+        <View style={styles.container}>
+            <TextInput
+                style={styles.searchInput}
+                placeholder="Search"
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                placeholderTextColor={'#888'}
+            />
+            <FlatList
+                data={filteredNotes.filter(note => !note.completed)}
+                keyExtractor={(item, index) => index.toString()}
+                renderItem={({ item }) => (
+                    <View style={styles.noteCard}>
+                        <Text style={styles.noteTitle}>{item.title}</Text>
+                        <Text style={styles.noteText}>{item.content}</Text>
+                        <Text style={styles.noteTag}>{item.tag}</Text>
+                        <TouchableOpacity onPress={() => handlePress(item)}>
+                            <Text style={styles.completeButton}>Complete</Text>
                         </TouchableOpacity>
-                    )}
-                />
-                <TouchableOpacity
-                    style={styles.addButton}
-                    onPress={() => navigation.navigate('AddNote')}
-                >
-                    <Text style={styles.addButtonText}>Add Note</Text>
-                </TouchableOpacity>
-            </View>
+                    </View>
+                )}
+            />
+            <TouchableOpacity
+                style={styles.addButton}
+                onPress={() => navigation.navigate('AddNote')}
+            >
+                <Text style={styles.addButtonText}>Add Note</Text>
+            </TouchableOpacity>
+        </View>
     );
 }
 
@@ -57,6 +71,13 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: '#2e2e2e',
         padding: 10,
+    },
+    searchInput: {
+        borderBottomWidth: 1,
+        marginBottom: 20,
+        padding: 10,
+        color: '#fff',
+        borderColor: '#00a300',
     },
     noteCard: {
         backgroundColor: '#3e3e3e',
@@ -72,10 +93,14 @@ const styles = StyleSheet.create({
     noteText: {
         color: '#fff',
     },
-    actionText: {
+    noteTag: {
         color: '#00a300',
         fontSize: 12,
         marginTop: 5,
+    },
+    completeButton: {
+        color: '#00a300',
+        marginTop: 10,
     },
     addButton: {
         backgroundColor: '#007a00',
@@ -87,8 +112,5 @@ const styles = StyleSheet.create({
     addButtonText: {
         color: '#fff',
         fontSize: 16,
-    },
-    safeArea: {
-        backgroundColor: '#2e2e2e',
     },
 });

@@ -1,13 +1,18 @@
-import React, {useEffect, useState} from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, FlatList} from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, FlatList, TextInput } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export default function CompletedNotesScreen({navigation}) {
+export default function CompletedNotesScreen({ navigation }) {
     const [notes, setNotes] = useState([]);
+    const [searchQuery, setSearchQuery] = useState('');
 
     const loadNotes = async () => {
-        const storedNotes = JSON.parse(await AsyncStorage.getItem('notes')) || [];
-        setNotes(storedNotes);
+        try {
+            const storedNotes = JSON.parse(await AsyncStorage.getItem('notes')) || [];
+            setNotes(storedNotes);
+        } catch (error) {
+            console.error('Failed to load notes:', error);
+        }
     };
 
     useEffect(() => {
@@ -15,30 +20,43 @@ export default function CompletedNotesScreen({navigation}) {
         return unsubscribe;
     }, [navigation]);
 
-    const handlePress = async (note) => {
-        const updatedNotes = notes.filter(n => n !== note);
+    const handleDelete = async (noteToDelete) => {
+        const updatedNotes = notes.filter(note => note !== noteToDelete);
         setNotes(updatedNotes);
         await AsyncStorage.setItem('notes', JSON.stringify(updatedNotes));
     };
 
+    const filteredNotes = notes.filter(note => note.completed).filter(note => {
+        if (searchQuery.startsWith('#')) {
+            return note.tag.includes(searchQuery);
+        }
+        return note.title.includes(searchQuery) || note.content.includes(searchQuery);
+    });
+
     return (
-            <View style={styles.container}>
-                <FlatList
-                    data={notes.filter(note => note.completed)}
-                    keyExtractor={(item, index) => index.toString()}
-                    renderItem={({item}) => (
-                        <TouchableOpacity
-                            style={styles.noteCard}
-                            onPress={() => handlePress(item)}
-                            activeOpacity={0.7}
-                        >
-                            <Text style={styles.noteTitle}>{item.title}</Text>
-                            <Text style={styles.noteText}>{item.content}</Text>
-                            <Text style={styles.actionText}>Delete</Text>
+        <View style={styles.container}>
+            <TextInput
+                style={styles.searchInput}
+                placeholder="Поиск"
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                placeholderTextColor={'#888'}
+            />
+            <FlatList
+                data={filteredNotes}
+                keyExtractor={(item, index) => index.toString()}
+                renderItem={({ item }) => (
+                    <View style={styles.noteCard}>
+                        <Text style={styles.noteTitle}>{item.title}</Text>
+                        <Text style={styles.noteText}>{item.content}</Text>
+                        <Text style={styles.noteTag}>{item.tag}</Text>
+                        <TouchableOpacity onPress={() => handleDelete(item)}>
+                            <Text style={styles.deleteButton}>Удалить</Text>
                         </TouchableOpacity>
-                    )}
-                />
-            </View>
+                    </View>
+                )}
+            />
+        </View>
     );
 }
 
@@ -47,6 +65,13 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: '#2e2e2e',
         padding: 10,
+    },
+    searchInput: {
+        borderBottomWidth: 1,
+        marginBottom: 20,
+        padding: 10,
+        color: '#fff',
+        borderColor: '#00a300',
     },
     noteCard: {
         backgroundColor: '#3e3e3e',
@@ -62,12 +87,13 @@ const styles = StyleSheet.create({
     noteText: {
         color: '#fff',
     },
-    actionText: {
+    noteTag: {
         color: '#00a300',
         fontSize: 12,
         marginTop: 5,
     },
-    safeArea: {
-        backgroundColor: '#2e2e2e',
+    deleteButton: {
+        color: '#ff0000',
+        marginTop: 10,
     },
 });
