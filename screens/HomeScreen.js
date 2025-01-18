@@ -1,6 +1,7 @@
-import React, {useEffect, useState} from 'react';
-import {FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View} from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, FlatList, TextInput } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function HomeScreen({ navigation }) {
     const [notes, setNotes] = useState([]);
@@ -16,11 +17,18 @@ export default function HomeScreen({ navigation }) {
     };
 
     useEffect(() => {
-        return navigation.addListener('focus', loadNotes);
+        const unsubscribe = navigation.addListener('focus', loadNotes);
+        return unsubscribe;
     }, [navigation]);
 
     const handlePress = async (note) => {
         const updatedNotes = notes.map(n => n === note ? { ...n, completed: true } : n);
+        setNotes(updatedNotes);
+        await AsyncStorage.setItem('notes', JSON.stringify(updatedNotes));
+    };
+
+    const handlePin = async (note) => {
+        const updatedNotes = notes.map(n => n === note ? { ...n, pinned: !n.pinned } : n);
         setNotes(updatedNotes);
         await AsyncStorage.setItem('notes', JSON.stringify(updatedNotes));
     };
@@ -32,6 +40,8 @@ export default function HomeScreen({ navigation }) {
         return note.title.includes(searchQuery) || note.content.includes(searchQuery);
     });
 
+    const sortedNotes = filteredNotes.sort((a, b) => b.pinned - a.pinned);
+
     return (
         <View style={styles.container}>
             <TextInput
@@ -42,16 +52,26 @@ export default function HomeScreen({ navigation }) {
                 placeholderTextColor={'#888'}
             />
             <FlatList
-                data={filteredNotes.filter(note => !note.completed)}
+                data={sortedNotes.filter(note => !note.completed)}
                 keyExtractor={(item, index) => index.toString()}
                 renderItem={({ item }) => (
                     <View style={styles.noteCard}>
                         <Text style={styles.noteTitle}>{item.title}</Text>
                         <Text style={styles.noteText}>{item.content}</Text>
                         <Text style={styles.noteTag}>{item.tag}</Text>
-                        <TouchableOpacity onPress={() => handlePress(item)}>
-                            <Text style={styles.completeButton}>Complete</Text>
-                        </TouchableOpacity>
+                        <View style={styles.noteActions}>
+                            <TouchableOpacity onPress={() => handlePress(item)}>
+                                <Text style={styles.completeButton}>Complete</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity onPress={() => handlePin(item)}>
+                                <Ionicons
+                                    name={item.pinned ? "pin" : "pin-outline"}
+                                    size={24}
+                                    color="#00a300"
+                                    style={!item.pinned ? { transform: [{ rotate: '45deg' }] } : {}}
+                                />
+                            </TouchableOpacity>
+                        </View>
                     </View>
                 )}
             />
@@ -97,9 +117,13 @@ const styles = StyleSheet.create({
         fontSize: 12,
         marginTop: 5,
     },
+    noteActions: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginTop: 10,
+    },
     completeButton: {
         color: '#00a300',
-        marginTop: 10,
     },
     addButton: {
         backgroundColor: '#007a00',

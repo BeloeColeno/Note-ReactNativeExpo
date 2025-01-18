@@ -1,6 +1,7 @@
-import React, {useEffect, useState} from 'react';
-import {FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View} from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function CompletedNotesScreen({ navigation }) {
     const [notes, setNotes] = useState([]);
@@ -25,12 +26,20 @@ export default function CompletedNotesScreen({ navigation }) {
         await AsyncStorage.setItem('notes', JSON.stringify(updatedNotes));
     };
 
+    const handlePin = async (note) => {
+        const updatedNotes = notes.map(n => n === note ? { ...n, pinned: !n.pinned } : n);
+        setNotes(updatedNotes);
+        await AsyncStorage.setItem('notes', JSON.stringify(updatedNotes));
+    };
+
     const filteredNotes = notes.filter(note => note.completed).filter(note => {
         if (searchQuery.startsWith('#')) {
             return note.tag.includes(searchQuery);
         }
         return note.title.includes(searchQuery) || note.content.includes(searchQuery);
     });
+
+    const sortedNotes = filteredNotes.sort((a, b) => b.pinned - a.pinned);
 
     return (
         <View style={styles.container}>
@@ -42,16 +51,26 @@ export default function CompletedNotesScreen({ navigation }) {
                 placeholderTextColor={'#888'}
             />
             <FlatList
-                data={filteredNotes}
+                data={sortedNotes}
                 keyExtractor={(item, index) => index.toString()}
                 renderItem={({ item }) => (
                     <View style={styles.noteCard}>
                         <Text style={styles.noteTitle}>{item.title}</Text>
                         <Text style={styles.noteText}>{item.content}</Text>
                         <Text style={styles.noteTag}>{item.tag}</Text>
-                        <TouchableOpacity onPress={() => handleDelete(item)}>
-                            <Text style={styles.deleteButton}>Удалить</Text>
-                        </TouchableOpacity>
+                        <View style={styles.noteActions}>
+                            <TouchableOpacity onPress={() => handleDelete(item)}>
+                                <Text style={styles.deleteButton}>Удалить</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity onPress={() => handlePin(item)}>
+                                <Ionicons
+                                    name={item.pinned ? "pin" : "pin-outline"}
+                                    size={24}
+                                    color="#00a300"
+                                    style={!item.pinned ? { transform: [{ rotate: '45deg' }] } : {}}
+                                />
+                            </TouchableOpacity>
+                        </View>
                     </View>
                 )}
             />
@@ -91,8 +110,12 @@ const styles = StyleSheet.create({
         fontSize: 12,
         marginTop: 5,
     },
+    noteActions: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginTop: 10,
+    },
     deleteButton: {
         color: '#ff0000',
-        marginTop: 10,
     },
 });
